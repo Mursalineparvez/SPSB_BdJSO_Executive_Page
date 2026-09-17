@@ -138,14 +138,136 @@ body::after{
   background: linear-gradient(180deg, rgba(12,11,18,0) 60%, var(--bg) 100%);
 }
 
-/* Cover text now sits BELOW the photo, in its own calm section */
-.page-particles-canvas{
+/* ---------- Floating 3D gems background ----------
+   Genuine CSS 3D (perspective + rotateX/Y/Z + translateZ), not a
+   flat canvas illusion. GPU-composited transforms only — no JS
+   animation loop — so it's cheaper than the earlier canvas version
+   while looking distinctly more three-dimensional. A handful of
+   translucent low-poly "gems" tumble slowly in place; each sits in
+   a "slot" that smoothly offsets toward the pointer by its own
+   depth amount, so nearer gems drift further than distant ones. */
+.gems-wrap{
   position: fixed;
   inset: 0;
-  z-index: -1;           /* above body::before/::after blobs (-2), below all content */
-  display: block;
+  z-index: -1;
+  overflow: hidden;
+  perspective: 1400px;
   pointer-events: none;
 }
+.gem-slot{
+  position: absolute;
+  transform: translate3d(calc(var(--px, 0px) * var(--depth, 1)), calc(var(--py, 0px) * var(--depth, 1)), 0);
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.gem{
+  position: relative;
+  transform-style: preserve-3d;
+  animation: gemTumble var(--dur, 22s) linear infinite, gemDrift var(--fdur, 9s) ease-in-out infinite alternate;
+  will-change: transform;
+}
+.gem .face{
+  position: absolute;
+  inset: 0;
+  border-radius: 18%;
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.gem .face.f1{ background: linear-gradient(135deg, rgba(14,128,116,0.34), rgba(14,128,116,0.05)); transform: translateZ(var(--tz, 22px)); }
+.gem .face.f2{ background: linear-gradient(135deg, rgba(192,138,46,0.30), rgba(192,138,46,0.04)); transform: rotateY(90deg) translateZ(var(--tz, 22px)); }
+.gem .face.f3{ background: linear-gradient(135deg, rgba(111,99,184,0.28), rgba(111,99,184,0.04)); transform: rotateY(180deg) translateZ(var(--tz, 22px)); }
+.gem .face.f4{ background: linear-gradient(135deg, rgba(14,128,116,0.22), rgba(192,138,46,0.06)); transform: rotateY(-90deg) translateZ(var(--tz, 22px)); }
+.gem .face.f5{ background: linear-gradient(135deg, rgba(255,255,255,0.20), rgba(255,255,255,0.02)); transform: rotateX(90deg) translateZ(var(--tz, 22px)); }
+.gem .face.f6{ background: linear-gradient(135deg, rgba(15,43,40,0.16), rgba(15,43,40,0.02)); transform: rotateX(-90deg) translateZ(var(--tz, 22px)); }
+
+@keyframes gemTumble{
+  0%   { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(180deg); }
+}
+@keyframes gemDrift{
+  0%   { margin-top: -14px; }
+  100% { margin-top: 14px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .gem{ animation: none; }
+  .gem-slot{ transition: none; }
+}
+
+/* ---------- Extruded 3D "SPSB" watermark ----------
+   Pure CSS extrusion: dozens of stacked text-shadow layers, each
+   offset by half a pixel and shaded a bit darker than the last,
+   fake the "sides" of solid letters the way a 3D-modeled wordmark
+   would look lit from the front. A slow rotateY gives it a real
+   turntable feel (perspective is on the wrapper, so the rotation
+   actually reads as depth, not just a squish). Sits large and
+   faint behind the whole page as a brand watermark. */
+.spsb-watermark-wrap{
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  perspective: 1800px;
+  pointer-events: none;
+}
+.spsb-watermark{
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: #C08A2E;
+  opacity: 0.16;
+  -webkit-text-stroke: 1px rgba(255,255,255,0.25);
+  transform-style: preserve-3d;
+  animation: spsbTurntable 16s ease-in-out infinite;
+  text-shadow:
+    0.6px 0.6px 0 rgba(186,134,44,0.9),
+    1.2px 1.2px 0 rgba(181,130,43,0.9),
+    1.8px 1.8px 0 rgba(175,126,42,0.9),
+    2.4px 2.4px 0 rgba(170,122,41,0.9),
+    3.0px 3.0px 0 rgba(165,118,40,0.9),
+    3.6px 3.6px 0 rgba(159,114,39,0.9),
+    4.2px 4.2px 0 rgba(154,111,37,0.9),
+    4.8px 4.8px 0 rgba(148,107,36,0.9),
+    5.4px 5.4px 0 rgba(143,103,35,0.9),
+    6.0px 6.0px 0 rgba(138,99,34,0.9),
+    6.6px 6.6px 0 rgba(132,95,33,0.9),
+    7.2px 7.2px 0 rgba(127,91,32,0.9),
+    7.8px 7.8px 0 rgba(122,88,31,0.9),
+    8.4px 8.4px 0 rgba(116,84,29,0.9),
+    9.0px 9.0px 0 rgba(111,80,28,0.9),
+    9.6px 9.6px 0 rgba(105,76,27,0.9),
+    10.2px 10.2px 0 rgba(100,72,26,0.9),
+    10.8px 10.8px 0 rgba(95,68,25,0.9),
+    11.4px 11.4px 0 rgba(89,64,24,0.9),
+    12.0px 12.0px 0 rgba(84,61,22,0.9),
+    12.6px 12.6px 0 rgba(78,57,21,0.9),
+    13.2px 13.2px 0 rgba(73,53,20,0.9),
+    13.8px 13.8px 0 rgba(68,49,19,0.9),
+    14.4px 14.4px 0 rgba(62,45,18,0.9),
+    15.0px 15.0px 0 rgba(57,41,17,0.9),
+    15.6px 15.6px 0 rgba(52,38,16,0.9);
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.wm-line{ display: block; }
+.wm-team{ font-size: clamp(48px, 8vw, 130px); letter-spacing: 0.12em; margin-bottom: 0.05em; }
+.wm-spsb{ font-size: clamp(140px, 26vw, 420px); }
+@keyframes spsbTurntable{
+  0%   { transform: rotateX(8deg) rotateY(-14deg); }
+  50%  { transform: rotateX(8deg) rotateY(14deg); }
+  100% { transform: rotateX(8deg) rotateY(-14deg); }
+}
+@media (prefers-reduced-motion: reduce){
+  .spsb-watermark{ animation: none; transform: rotateX(8deg) rotateY(0deg); }
+}
+@media (max-width: 640px){
+  .spsb-watermark{ opacity: 0.11; }
+}
+
+/* Cover text now sits BELOW the photo, in its own calm section */
 .cover-text{
   position: relative;
   z-index: 1;
@@ -781,7 +903,57 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
      down before (it added ~290KB of un-cacheable inline text). -->
 <div class="cover-banner"><img id="coverImg" alt="Cover photo"></div>
 
-<canvas class="page-particles-canvas" id="pageParticles"></canvas>
+<div class="spsb-watermark-wrap" aria-hidden="true">
+  <div class="spsb-watermark">
+    <span class="wm-line wm-team">Team</span>
+    <span class="wm-line wm-spsb">SPSB</span>
+  </div>
+</div>
+
+<div class="gems-wrap" aria-hidden="true">
+  <div class="gem-slot" style="left:6%; top:12%; --depth:0.6;">
+    <div class="gem" style="width:42px; height:42px; --tz:21px; --dur:26s; --fdur:8s;">
+      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
+      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
+    </div>
+  </div>
+  <div class="gem-slot" style="left:88%; top:8%; --depth:1.4;">
+    <div class="gem" style="width:66px; height:66px; --tz:33px; --dur:34s; --fdur:11s;">
+      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
+      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
+    </div>
+  </div>
+  <div class="gem-slot" style="left:20%; top:38%; --depth:1.8;">
+    <div class="gem" style="width:78px; height:78px; --tz:39px; --dur:20s; --fdur:9s;">
+      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
+      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
+    </div>
+  </div>
+  <div class="gem-slot" style="left:78%; top:34%; --depth:0.9;">
+    <div class="gem" style="width:34px; height:34px; --tz:17px; --dur:30s; --fdur:7s;">
+      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
+      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
+    </div>
+  </div>
+  <div class="gem-slot" style="left:10%; top:66%; --depth:1.1;">
+    <div class="gem" style="width:54px; height:54px; --tz:27px; --dur:24s; --fdur:10s;">
+      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
+      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
+    </div>
+  </div>
+  <div class="gem-slot" style="left:92%; top:72%; --depth:1.6;">
+    <div class="gem" style="width:72px; height:72px; --tz:36px; --dur:28s; --fdur:12s;">
+      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
+      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
+    </div>
+  </div>
+  <div class="gem-slot" style="left:50%; top:90%; --depth:0.7;">
+    <div class="gem" style="width:38px; height:38px; --tz:19px; --dur:32s; --fdur:9s;">
+      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
+      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
+    </div>
+  </div>
+</div>
 
 <div class="cover-text">
   <p class="cover-eyebrow">Our People</p>
@@ -3145,151 +3317,33 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
 
 <script>
   // ============================================================
-  // PAGE PARTICLE FIELD — a fixed, viewport-sized 3D-feeling
-  // constellation backdrop behind the whole page. It's sized to
-  // the *viewport*, not the full scrollable document, and stays
-  // fixed while the page scrolls — so cost stays bounded no
-  // matter how long the page is (this is a deliberately different,
-  // cheaper approach than the old full-document canvas that was
-  // removed earlier for CPU cost — see the comment near .wrap
-  // above). Three depth layers (far/mid/near) drift at different
-  // speeds and shift slightly opposite ways on mouse move for
-  // parallax; nearby "near" particles get faint connecting lines
-  // for a constellation look. Teal + gold to match the brand
-  // palette. Sits behind every card/section via z-index, so it
-  // only shows through where the page background is visible
-  // (margins, gaps, the hero text area).
+  // FLOATING 3D GEMS — parallax only. All the motion (tumbling
+  // rotation, gentle vertical drift) is pure CSS (@keyframes on
+  // GPU-composited transforms), so there's no animation loop here
+  // at all. This script's only job is to update two CSS custom
+  // properties (--px / --py) on :root when the pointer moves; each
+  // .gem-slot reads them back through its own --depth multiplier
+  // (see the CSS), so nearer gems drift further than distant ones.
+  // Throttled to one update per animation frame.
   // ============================================================
-  (function pageParticles(){
-    const canvas = document.getElementById('pageParticles');
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
+  (function gemsParallax(){
+    const wrap = document.querySelector('.gems-wrap');
+    if(!wrap) return;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduceMotion) return; // leave --px/--py at their default 0px
 
-    let W = 0, H = 0, dpr = 1, layers = [], pointer = { x: 0, y: 0 }, running = true, raf = null;
-
-    const COLORS = [
-      'rgba(14,128,116,ALPHA)',   // teal
-      'rgba(192,138,46,ALPHA)',   // gold
-      'rgba(111,99,184,ALPHA)'    // violet accent, used sparingly
-    ];
-
-    function rand(a, b){ return a + Math.random() * (b - a); }
-
-    function resize(){
-      W = window.innerWidth;
-      H = window.innerHeight;
-      dpr = Math.min(window.devicePixelRatio || 1, 1.5); // cap DPR for perf
-      canvas.width = Math.round(W * dpr);
-      canvas.height = Math.round(H * dpr);
-      canvas.style.width = W + 'px';
-      canvas.style.height = H + 'px';
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    let ticking = false, lastX = 0, lastY = 0;
+    function apply(){
+      document.documentElement.style.setProperty('--px', lastX.toFixed(1) + 'px');
+      document.documentElement.style.setProperty('--py', lastY.toFixed(1) + 'px');
+      ticking = false;
     }
-
-    // Three depth layers: far (tiny, slow, dim), mid, near (bigger,
-    // faster, brighter, and the only layer that draws constellation
-    // lines) — this depth separation is what reads as "3D" rather
-    // than a flat field of dots.
-    function makeLayer(count, opts){
-      return Array.from({ length: count }, () => ({
-        x: rand(0, W),
-        y: rand(0, H),
-        r: rand(opts.rMin, opts.rMax),
-        vx: rand(-opts.speed, opts.speed),
-        vy: rand(-opts.speed * 0.6, -opts.speed), // gentle upward bias
-        colorIdx: Math.random() < 0.55 ? 0 : (Math.random() < 0.8 ? 1 : 2),
-        baseAlpha: opts.alpha,
-        phase: rand(0, Math.PI * 2),
-        speedPhase: rand(0.008, 0.02),
-        parallax: opts.parallax
-      }));
-    }
-
-    function init(){
-      resize();
-      // Viewport-relative scale, capped so very large monitors don't
-      // spawn an unreasonable particle count.
-      const scale = Math.max(0.6, Math.min(1.6, (W * H) / (1400 * 800)));
-      layers = [
-        makeLayer(Math.round(36 * scale), { rMin: 0.6, rMax: 1.3, speed: 0.04, alpha: 0.22, parallax: 5 }),
-        makeLayer(Math.round(22 * scale), { rMin: 1.2, rMax: 2.2, speed: 0.07, alpha: 0.32, parallax: 12 }),
-        makeLayer(Math.round(12 * scale), { rMin: 2, rMax: 3.4, speed: 0.11, alpha: 0.46, parallax: 22 })
-      ];
-    }
-
-    function drawLayer(particles, withLinks){
-      for(const p of particles){
-        p.phase += p.speedPhase;
-        const twinkle = 0.6 + 0.4 * Math.sin(p.phase);
-        const px = p.x + pointer.x * p.parallax;
-        const py = p.y + pointer.y * p.parallax;
-        ctx.beginPath();
-        ctx.fillStyle = COLORS[p.colorIdx].replace('ALPHA', (p.baseAlpha * twinkle).toFixed(3));
-        ctx.arc(px, py, p.r, 0, Math.PI * 2);
-        ctx.fill();
-
-        p.x += p.vx;
-        p.y += p.vy;
-        if(p.x < -10) p.x = W + 10; else if(p.x > W + 10) p.x = -10;
-        if(p.y < -10) p.y = H + 10; else if(p.y > H + 10) p.y = -10;
-      }
-      if(withLinks){
-        const maxDist = 110;
-        for(let i = 0; i < particles.length; i++){
-          for(let j = i + 1; j < particles.length; j++){
-            const a = particles[i], b = particles[j];
-            const dx = a.x - b.x, dy = a.y - b.y;
-            const dist = Math.hypot(dx, dy);
-            if(dist < maxDist){
-              ctx.strokeStyle = `rgba(14,128,116,${0.12 * (1 - dist / maxDist)})`;
-              ctx.lineWidth = 1;
-              ctx.beginPath();
-              ctx.moveTo(a.x + pointer.x * a.parallax, a.y + pointer.y * a.parallax);
-              ctx.lineTo(b.x + pointer.x * b.parallax, b.y + pointer.y * b.parallax);
-              ctx.stroke();
-            }
-          }
-        }
-      }
-    }
-
-    function frame(){
-      if(!running) return;
-      ctx.clearRect(0, 0, W, H);
-      drawLayer(layers[0], false);
-      drawLayer(layers[1], false);
-      drawLayer(layers[2], true);
-      raf = requestAnimationFrame(frame);
-    }
-
     window.addEventListener('mousemove', (e) => {
-      pointer.x = (e.clientX / W - 0.5) * 2;
-      pointer.y = (e.clientY / H - 0.5) * 2;
+      const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+      lastX = (e.clientX - cx) / cx * 14;  // max ~14px shift at full depth
+      lastY = (e.clientY - cy) / cy * 14;
+      if(!ticking){ ticking = true; requestAnimationFrame(apply); }
     });
-
-    document.addEventListener('visibilitychange', () => {
-      running = !document.hidden && !reduceMotion;
-      if(running && !raf){ raf = null; frame(); }
-    });
-
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(init, 200);
-    });
-
-    init();
-    if(reduceMotion){
-      // Draw one static frame instead of animating, per prefers-reduced-motion.
-      running = false;
-      ctx.clearRect(0, 0, W, H);
-      drawLayer(layers[0], false);
-      drawLayer(layers[1], false);
-      drawLayer(layers[2], true);
-    } else {
-      frame();
-    }
   })();
 </script>
 </body>
