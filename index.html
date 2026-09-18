@@ -138,58 +138,6 @@ body::after{
   background: linear-gradient(180deg, rgba(12,11,18,0) 60%, var(--bg) 100%);
 }
 
-/* ---------- Floating 3D gems background ----------
-   Genuine CSS 3D (perspective + rotateX/Y/Z + translateZ), not a
-   flat canvas illusion. GPU-composited transforms only — no JS
-   animation loop — so it's cheaper than the earlier canvas version
-   while looking distinctly more three-dimensional. A handful of
-   translucent low-poly "gems" tumble slowly in place; each sits in
-   a "slot" that smoothly offsets toward the pointer by its own
-   depth amount, so nearer gems drift further than distant ones. */
-.gems-wrap{
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  perspective: 1400px;
-  pointer-events: none;
-}
-.gem-slot{
-  position: absolute;
-  transform: translate3d(calc(var(--px, 0px) * var(--depth, 1)), calc(var(--py, 0px) * var(--depth, 1)), 0);
-  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.gem{
-  position: relative;
-  transform-style: preserve-3d;
-  animation: gemTumble var(--dur, 22s) linear infinite, gemDrift var(--fdur, 9s) ease-in-out infinite alternate;
-  will-change: transform;
-}
-.gem .face{
-  position: absolute;
-  inset: 0;
-  border-radius: 18%;
-  border: 1px solid rgba(255,255,255,0.22);
-}
-.gem .face.f1{ background: linear-gradient(135deg, rgba(14,128,116,0.34), rgba(14,128,116,0.05)); transform: translateZ(var(--tz, 22px)); }
-.gem .face.f2{ background: linear-gradient(135deg, rgba(192,138,46,0.30), rgba(192,138,46,0.04)); transform: rotateY(90deg) translateZ(var(--tz, 22px)); }
-.gem .face.f3{ background: linear-gradient(135deg, rgba(111,99,184,0.28), rgba(111,99,184,0.04)); transform: rotateY(180deg) translateZ(var(--tz, 22px)); }
-.gem .face.f4{ background: linear-gradient(135deg, rgba(14,128,116,0.22), rgba(192,138,46,0.06)); transform: rotateY(-90deg) translateZ(var(--tz, 22px)); }
-.gem .face.f5{ background: linear-gradient(135deg, rgba(255,255,255,0.20), rgba(255,255,255,0.02)); transform: rotateX(90deg) translateZ(var(--tz, 22px)); }
-.gem .face.f6{ background: linear-gradient(135deg, rgba(15,43,40,0.16), rgba(15,43,40,0.02)); transform: rotateX(-90deg) translateZ(var(--tz, 22px)); }
-
-@keyframes gemTumble{
-  0%   { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
-  100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(180deg); }
-}
-@keyframes gemDrift{
-  0%   { margin-top: -14px; }
-  100% { margin-top: 14px; }
-}
-@media (prefers-reduced-motion: reduce){
-  .gem{ animation: none; }
-  .gem-slot{ transition: none; }
-}
 
 /* ---------- Extruded 3D "SPSB" watermark ----------
    Pure CSS extrusion: dozens of stacked text-shadow layers, each
@@ -907,51 +855,6 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
   <div class="spsb-watermark">
     <span class="wm-line wm-team">Team</span>
     <span class="wm-line wm-spsb">SPSB</span>
-  </div>
-</div>
-
-<div class="gems-wrap" aria-hidden="true">
-  <div class="gem-slot" style="left:6%; top:12%; --depth:0.6;">
-    <div class="gem" style="width:42px; height:42px; --tz:21px; --dur:26s; --fdur:8s;">
-      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
-      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
-    </div>
-  </div>
-  <div class="gem-slot" style="left:88%; top:8%; --depth:1.4;">
-    <div class="gem" style="width:66px; height:66px; --tz:33px; --dur:34s; --fdur:11s;">
-      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
-      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
-    </div>
-  </div>
-  <div class="gem-slot" style="left:20%; top:38%; --depth:1.8;">
-    <div class="gem" style="width:78px; height:78px; --tz:39px; --dur:20s; --fdur:9s;">
-      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
-      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
-    </div>
-  </div>
-  <div class="gem-slot" style="left:78%; top:34%; --depth:0.9;">
-    <div class="gem" style="width:34px; height:34px; --tz:17px; --dur:30s; --fdur:7s;">
-      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
-      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
-    </div>
-  </div>
-  <div class="gem-slot" style="left:10%; top:66%; --depth:1.1;">
-    <div class="gem" style="width:54px; height:54px; --tz:27px; --dur:24s; --fdur:10s;">
-      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
-      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
-    </div>
-  </div>
-  <div class="gem-slot" style="left:92%; top:72%; --depth:1.6;">
-    <div class="gem" style="width:72px; height:72px; --tz:36px; --dur:28s; --fdur:12s;">
-      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
-      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
-    </div>
-  </div>
-  <div class="gem-slot" style="left:50%; top:90%; --depth:0.7;">
-    <div class="gem" style="width:38px; height:38px; --tz:19px; --dur:32s; --fdur:9s;">
-      <div class="face f1"></div><div class="face f2"></div><div class="face f3"></div>
-      <div class="face f4"></div><div class="face f5"></div><div class="face f6"></div>
-    </div>
   </div>
 </div>
 
@@ -2877,8 +2780,18 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
     const W = CW + M*2, H = CH + M*2;
 
     const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
+    // Export at 3x resolution so the downloaded PNG stays crisp even
+    // when opened full-size or printed — the canvas pixel grid is 3x
+    // the layout's logical size, and ctx.scale() below means every
+    // drawing call below can keep using the original CW=1000 logical
+    // coordinate space unchanged.
+    const EXPORT_SCALE = 3;
+    canvas.width = W * EXPORT_SCALE;
+    canvas.height = H * EXPORT_SCALE;
     const ctx = canvas.getContext('2d');
+    ctx.scale(EXPORT_SCALE, EXPORT_SCALE);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     // ---- Outer frame background: rich diagonal gradient + dot texture,
     // giving the whole export a "certificate/share-card" presence rather
@@ -2935,6 +2848,18 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
     ctx.beginPath(); ctx.arc(-60, 40, 180, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(W_INNER+40, 120, 140, 0, Math.PI*2); ctx.fill();
     ctx.restore();
+    // A few thin gold ring accents + tiny dots scattered near the top
+    // corners for a touch more polish, echoing the site's brand marks
+    // without competing with the photo/name.
+    ctx.save();
+    ctx.strokeStyle = 'rgba(192,138,46,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(64, 210, 22, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W_INNER - 56, 230, 14, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = 'rgba(14,128,116,0.4)';
+    ctx.beginPath(); ctx.arc(108, 170, 4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W_INNER - 100, 190, 5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
 
     // Top gradient accent bar
     const topBarGrad = ctx.createLinearGradient(0, 0, W_INNER, 0);
@@ -2983,6 +2908,19 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
     const currentGroup = (hist[0] && GROUP_COLOR[hist[0].group]) || GROUP_COLOR.coordinators;
     const photoSize = 240, photoX = W_INNER/2, photoY = 300;
 
+    // Warm radial glow "halo" behind the photo — adds depth and a
+    // premium feel without being loud (kept subtle via low alpha).
+    ctx.save();
+    const haloR = photoSize/2 + 70;
+    const haloGrad = ctx.createRadialGradient(photoX, photoY, photoSize/2 - 10, photoX, photoY, haloR);
+    haloGrad.addColorStop(0, 'rgba(192,138,46,0.22)');
+    haloGrad.addColorStop(1, 'rgba(192,138,46,0)');
+    ctx.fillStyle = haloGrad;
+    ctx.beginPath();
+    ctx.arc(photoX, photoY, haloR, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
     // Soft shadow behind the photo
     ctx.save();
     ctx.shadowColor = 'rgba(15,43,40,0.25)';
@@ -3003,6 +2941,17 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
     ctx.beginPath();
     ctx.arc(photoX, photoY, photoSize/2 + 4, 0, Math.PI*2);
     ctx.stroke();
+
+    // Thin outer accent ring, slightly separated — gives the photo a
+    // "medal/badge" feel rather than a single flat border.
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#C08A2E';
+    ctx.beginPath();
+    ctx.arc(photoX, photoY, photoSize/2 + 16, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
 
     ctx.save();
     ctx.beginPath();
@@ -3313,38 +3262,6 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
     init();
   }
 
-</script>
-
-<script>
-  // ============================================================
-  // FLOATING 3D GEMS — parallax only. All the motion (tumbling
-  // rotation, gentle vertical drift) is pure CSS (@keyframes on
-  // GPU-composited transforms), so there's no animation loop here
-  // at all. This script's only job is to update two CSS custom
-  // properties (--px / --py) on :root when the pointer moves; each
-  // .gem-slot reads them back through its own --depth multiplier
-  // (see the CSS), so nearer gems drift further than distant ones.
-  // Throttled to one update per animation frame.
-  // ============================================================
-  (function gemsParallax(){
-    const wrap = document.querySelector('.gems-wrap');
-    if(!wrap) return;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if(reduceMotion) return; // leave --px/--py at their default 0px
-
-    let ticking = false, lastX = 0, lastY = 0;
-    function apply(){
-      document.documentElement.style.setProperty('--px', lastX.toFixed(1) + 'px');
-      document.documentElement.style.setProperty('--py', lastY.toFixed(1) + 'px');
-      ticking = false;
-    }
-    window.addEventListener('mousemove', (e) => {
-      const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-      lastX = (e.clientX - cx) / cx * 14;  // max ~14px shift at full depth
-      lastY = (e.clientY - cy) / cy * 14;
-      if(!ticking){ ticking = true; requestAnimationFrame(apply); }
-    });
-  })();
 </script>
 </body>
 </html>
