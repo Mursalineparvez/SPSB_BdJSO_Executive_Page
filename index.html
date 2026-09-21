@@ -2760,7 +2760,11 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
     // ---- Layout math (canvas height is computed from real content so
     // nothing gets cut off or leaves dead space, regardless of how much
     // history/contact info this particular person has) ----
-    const headerH = 636 + nameExtra;
+    // Photo box dimensions declared here (used again down in the actual
+    // drawing code) so the header-height math and the real layout can
+    // never drift apart when this gets resized.
+    const PHOTO_AREA_Y = 150, PHOTO_AREA_H = 700;
+    const headerH = (PHOTO_AREA_Y + PHOTO_AREA_H) + 50;
     const infoCardPad = 44;
     const infoRowsTotalH = infoRowsWrapped.reduce((sum, r) => sum + r.rowHeight, 0);
     const infoCardH = infoRows.length ? (infoCardPad*2 + infoRowsTotalH - rowBottomPad) : 0;
@@ -2873,23 +2877,37 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
     const bdjsoLogoImg = await loadImageSafe(BDJSO_LOGO);
     const spsbLogoImg = await loadImageSafe(SPSB_LOGO);
     // Logos sit at the two opposite top corners (BdJSO on the left,
-    // SPSB on the right) rather than centered together.
-    const logoH = 78, logoY = 20, logoMargin = 60;
+    // SPSB on the right), drawn directly on the background — no plate
+    // or border behind them.
+    const logoH = 70, logoY = 26, logoMargin = 60;
     const bdjsoW = bdjsoLogoImg ? logoH * (bdjsoLogoImg.width / bdjsoLogoImg.height) : 0;
     const spsbW = spsbLogoImg ? logoH * (spsbLogoImg.width / spsbLogoImg.height) : 0;
-    if(bdjsoLogoImg){ ctx.drawImage(bdjsoLogoImg, logoMargin, logoY, bdjsoW, logoH); }
-    if(spsbLogoImg){ ctx.drawImage(spsbLogoImg, W_INNER - logoMargin - spsbW, logoY, spsbW, logoH); }
+    if(bdjsoLogoImg) ctx.drawImage(bdjsoLogoImg, logoMargin, logoY, bdjsoW, logoH);
+    if(spsbLogoImg) ctx.drawImage(spsbLogoImg, W_INNER - logoMargin - spsbW, logoY, spsbW, logoH);
 
-    // Eyebrow pill
+    // Eyebrow pill — small sparkle accents flanking the text and a
+    // gentle gradient fill instead of a flat tint, for a bit more polish.
     ctx.textAlign = 'center';
     const eyebrow = 'EXECUTIVE TEAM · BdJSO';
     ctx.font = "700 16px 'Manrope', sans-serif";
-    const eyebrowW = ctx.measureText(eyebrow).width + 48;
+    const eyebrowW = ctx.measureText(eyebrow).width + 74;
+    const eyebrowGrad = ctx.createLinearGradient(W_INNER/2 - eyebrowW/2, 0, W_INNER/2 + eyebrowW/2, 0);
+    eyebrowGrad.addColorStop(0, 'rgba(14,128,116,0.06)');
+    eyebrowGrad.addColorStop(0.5, 'rgba(14,128,116,0.16)');
+    eyebrowGrad.addColorStop(1, 'rgba(14,128,116,0.06)');
     roundedRectPath(ctx, W_INNER/2 - eyebrowW/2, 96, eyebrowW, 40, 20);
-    ctx.fillStyle = 'rgba(14,128,116,0.10)';
+    ctx.fillStyle = eyebrowGrad;
     ctx.fill();
+    ctx.strokeStyle = 'rgba(14,128,116,0.22)';
+    ctx.lineWidth = 1;
+    roundedRectPath(ctx, W_INNER/2 - eyebrowW/2, 96, eyebrowW, 40, 20);
+    ctx.stroke();
     ctx.fillStyle = '#0A5F56';
     ctx.fillText(eyebrow, W_INNER/2, 121);
+    ctx.font = "600 15px 'Manrope', sans-serif";
+    ctx.fillStyle = '#C08A2E';
+    ctx.fillText('✦', W_INNER/2 - eyebrowW/2 + 22, 121);
+    ctx.fillText('✦', W_INNER/2 + eyebrowW/2 - 22, 121);
 
     // Photo — try the real photo first (needs CORS from its host, which
     // Google Drive doesn't provide directly), then via a CORS-enabling
@@ -2906,121 +2924,184 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
       photoImg = await loadImageSafe(avatarSrc);
     }
     const currentGroup = (hist[0] && GROUP_COLOR[hist[0].group]) || GROUP_COLOR.coordinators;
-    const photoSize = 240, photoX = W_INNER/2, photoY = 300;
 
-    // Warm radial glow "halo" behind the photo — adds depth and a
-    // premium feel without being loud (kept subtle via low alpha).
-    ctx.save();
-    const haloR = photoSize/2 + 70;
-    const haloGrad = ctx.createRadialGradient(photoX, photoY, photoSize/2 - 10, photoX, photoY, haloR);
-    haloGrad.addColorStop(0, 'rgba(192,138,46,0.22)');
-    haloGrad.addColorStop(1, 'rgba(192,138,46,0)');
-    ctx.fillStyle = haloGrad;
-    ctx.beginPath();
-    ctx.arc(photoX, photoY, haloR, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
+    // Large rectangular "front-page style" photo — bleeds edge to edge
+    // within the header band, with a top-anchored crop so the face and
+    // shoulders stay in frame rather than the torso.
+    const photoAreaX = infoCardX, photoAreaY = PHOTO_AREA_Y, photoAreaW = infoCardW, photoAreaH = PHOTO_AREA_H;
 
-    // Soft shadow behind the photo
     ctx.save();
-    ctx.shadowColor = 'rgba(15,43,40,0.25)';
-    ctx.shadowBlur = 30;
-    ctx.shadowOffsetY = 10;
-    ctx.beginPath();
-    ctx.arc(photoX, photoY, photoSize/2 + 8, 0, Math.PI*2);
+    ctx.shadowColor = 'rgba(15,43,40,0.28)';
+    ctx.shadowBlur = 34;
+    ctx.shadowOffsetY = 14;
+    roundedRectPath(ctx, photoAreaX, photoAreaY, photoAreaW, photoAreaH, 26);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.restore();
 
-    // Gradient ring
-    const ringGrad = ctx.createLinearGradient(photoX - photoSize/2, photoY - photoSize/2, photoX + photoSize/2, photoY + photoSize/2);
-    ringGrad.addColorStop(0, currentGroup.main);
-    ringGrad.addColorStop(1, '#C08A2E');
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = ringGrad;
-    ctx.beginPath();
-    ctx.arc(photoX, photoY, photoSize/2 + 4, 0, Math.PI*2);
-    ctx.stroke();
-
-    // Thin outer accent ring, slightly separated — gives the photo a
-    // "medal/badge" feel rather than a single flat border.
     ctx.save();
-    ctx.globalAlpha = 0.55;
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = '#C08A2E';
-    ctx.beginPath();
-    ctx.arc(photoX, photoY, photoSize/2 + 16, 0, Math.PI*2);
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(photoX, photoY, photoSize/2, 0, Math.PI*2);
-    ctx.closePath();
+    roundedRectPath(ctx, photoAreaX, photoAreaY, photoAreaW, photoAreaH, 26);
     ctx.clip();
     if(photoImg){
       const iw = photoImg.width, ih = photoImg.height;
-      const scale = Math.max(photoSize/iw, photoSize/ih);
+      const scale = Math.max(photoAreaW/iw, photoAreaH/ih);
       const dw = iw*scale, dh = ih*scale;
-      ctx.drawImage(photoImg, photoX - dw/2, photoY - dh/2, dw, dh);
+      const dx = photoAreaX + photoAreaW/2 - dw/2;
+      // Anchor toward the top of the source photo (like object-position:
+      // top) so the face stays in frame rather than the torso/legs.
+      const dy = photoAreaY - dh*0.03;
+      ctx.drawImage(photoImg, dx, dy, dw, dh);
+
+      // Dark bottom fade so the name/role text overlaid on the photo
+      // stays legible, matching the reference's text-on-photo look.
+      const bottomFade = ctx.createLinearGradient(0, photoAreaY + photoAreaH*0.6, 0, photoAreaY + photoAreaH);
+      bottomFade.addColorStop(0, 'rgba(15,43,40,0)');
+      bottomFade.addColorStop(1, 'rgba(11,27,25,0.82)');
+      ctx.fillStyle = bottomFade;
+      ctx.fillRect(photoAreaX, photoAreaY, photoAreaW, photoAreaH);
     }
     ctx.restore();
 
-    // "Years" badge overlapping the bottom-right of the photo
-    const yrBadgeCX = photoX + photoSize/2 - 10, yrBadgeCY = photoY + photoSize/2 - 6, yrBadgeR = 42;
+    // "Years" badge — a wavy-edged gold-and-red seal with laurel
+    // leaves and a gold ribbon banner reading "TEAM SPSB", styled
+    // after a classic award-seal graphic. Sits over the top-right
+    // corner of the photo.
+    const yrBadgeCX = photoAreaX + photoAreaW - 84, yrBadgeCY = photoAreaY + 84;
+    const yrOuterR = 78, yrInnerR = 64;
+
     ctx.save();
-    ctx.shadowColor = 'rgba(15,43,40,0.3)';
-    ctx.shadowBlur = 14;
-    ctx.shadowOffsetY = 4;
-    ctx.beginPath();
-    ctx.arc(yrBadgeCX, yrBadgeCY, yrBadgeR, 0, Math.PI*2);
-    ctx.fillStyle = '#C08A2E';
+    ctx.shadowColor = 'rgba(15,43,40,0.4)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 7;
+
+    // Outer gold ring — a smooth wavy (scalloped) contour, not a
+    // sharp zigzag, to match a classic seal shape.
+    function wavyPath(cx, cy, r, waveAmp, waveCount, phase){
+      ctx.beginPath();
+      const steps = 120;
+      for(let i = 0; i <= steps; i++){
+        const a = (i / steps) * Math.PI * 2;
+        const rr = r + Math.sin(a * waveCount + phase) * waveAmp;
+        const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+        if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    }
+    wavyPath(yrBadgeCX, yrBadgeCY, yrOuterR, 6, 14, 0);
+    const goldGrad = ctx.createLinearGradient(yrBadgeCX - yrOuterR, yrBadgeCY - yrOuterR, yrBadgeCX + yrOuterR, yrBadgeCY + yrOuterR);
+    goldGrad.addColorStop(0, '#F3D999');
+    goldGrad.addColorStop(0.5, '#C9963E');
+    goldGrad.addColorStop(1, '#8E6420');
+    ctx.fillStyle = goldGrad;
     ctx.fill();
     ctx.restore();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#F3FAF9';
-    ctx.beginPath();
-    ctx.arc(yrBadgeCX, yrBadgeCY, yrBadgeR, 0, Math.PI*2);
-    ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = "700 26px 'Manrope', sans-serif";
-    ctx.fillText(String(hist.length), yrBadgeCX, yrBadgeCY - 2);
-    ctx.font = "700 12px 'Manrope', sans-serif";
-    ctx.fillText(hist.length > 1 ? 'YEARS' : 'YEAR', yrBadgeCX, yrBadgeCY + 17);
 
-    // Name — drawn from precomputed nameLines/nameFontSize/nameLineH so
-    // a long name shrinks to fit, or wraps onto a second line, instead
-    // of overflowing the card. A soft teal-accented gradient plus a
-    // gentle drop shadow gives it the same polished look as the page's
-    // own gradient headline instead of flat solid text.
-    ctx.textAlign = 'center';
-    ctx.font = `700 ${nameFontSize}px 'Fraunces', serif`;
-    const nameGrad = ctx.createLinearGradient(W_INNER/2 - 260, 0, W_INNER/2 + 260, 0);
-    nameGrad.addColorStop(0, '#0F2B28');
-    nameGrad.addColorStop(0.5, currentGroup.main);
-    nameGrad.addColorStop(1, '#0F2B28');
-    let nameY = 496 - nameExtra;
+    // Beaded dot ring, between the gold rim and the red face
     ctx.save();
-    ctx.shadowColor = 'rgba(15,43,40,0.18)';
-    ctx.shadowBlur = 14;
-    ctx.shadowOffsetY = 3;
-    ctx.fillStyle = nameGrad;
-    nameLines.forEach(line => { ctx.fillText(line, W_INNER/2, nameY); nameY += nameLineH; });
+    const beadCount = 40;
+    for(let i = 0; i < beadCount; i++){
+      const a = (i / beadCount) * Math.PI * 2;
+      const br = (yrOuterR + yrInnerR) / 2;
+      const bx = yrBadgeCX + Math.cos(a) * br, by = yrBadgeCY + Math.sin(a) * br;
+      ctx.beginPath();
+      ctx.arc(bx, by, 1.6, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fill();
+    }
     ctx.restore();
 
-    // Current role pill (colored by group)
-    const pillY = 524;
-    if(hist[0]){
-      const roleLabel = `${hist[0].role} · ${hist[0].year}`;
-      ctx.font = "700 22px 'Manrope', sans-serif";
-      const pillW = ctx.measureText(roleLabel).width + 56;
-      roundedRectPath(ctx, W_INNER/2 - pillW/2, pillY, pillW, 46, 23);
-      ctx.fillStyle = currentGroup.soft;
-      ctx.fill();
-      ctx.fillStyle = currentGroup.main;
-      ctx.fillText(roleLabel, W_INNER/2, pillY + 29);
+    // Inner red face, its own gentler scalloped edge
+    wavyPath(yrBadgeCX, yrBadgeCY, yrInnerR, 4, 14, 0);
+    const redGrad = ctx.createRadialGradient(yrBadgeCX, yrBadgeCY - 10, 6, yrBadgeCX, yrBadgeCY, yrInnerR);
+    redGrad.addColorStop(0, '#E8453F');
+    redGrad.addColorStop(0.6, '#B4211E');
+    redGrad.addColorStop(1, '#7A1210');
+    ctx.fillStyle = redGrad;
+    ctx.fill();
+
+    // Small laurel leaf sprigs, flanking the lower sides of the seal
+    function drawLeafSprig(cx, cy, angleDeg, mirror){
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angleDeg * Math.PI/180);
+      if(mirror) ctx.scale(-1, 1);
+      for(let i = 0; i < 4; i++){
+        ctx.save();
+        ctx.translate(i * 8, 0);
+        ctx.rotate(-0.35);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 7, 3.2, 0, 0, Math.PI*2);
+        ctx.fillStyle = i % 2 === 0 ? '#E8C878' : '#C9963E';
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
     }
+    drawLeafSprig(yrBadgeCX - yrInnerR*0.55, yrBadgeCY + yrInnerR*0.45, 200, false);
+    drawLeafSprig(yrBadgeCX + yrInnerR*0.55, yrBadgeCY + yrInnerR*0.45, -20, true);
+
+    // Ribbon banner across the lower third of the seal
+    const ribbonY = yrBadgeCY + yrInnerR*0.42, ribbonH = 26, ribbonHalfW = yrOuterR + 6;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(yrBadgeCX - ribbonHalfW, ribbonY - ribbonH/2);
+    ctx.lineTo(yrBadgeCX + ribbonHalfW, ribbonY - ribbonH/2);
+    ctx.lineTo(yrBadgeCX + ribbonHalfW - 7, ribbonY);
+    ctx.lineTo(yrBadgeCX + ribbonHalfW, ribbonY + ribbonH/2);
+    ctx.lineTo(yrBadgeCX - ribbonHalfW, ribbonY + ribbonH/2);
+    ctx.lineTo(yrBadgeCX - ribbonHalfW + 7, ribbonY);
+    ctx.closePath();
+    const ribbonGrad = ctx.createLinearGradient(yrBadgeCX, ribbonY - ribbonH/2, yrBadgeCX, ribbonY + ribbonH/2);
+    ribbonGrad.addColorStop(0, '#F3D999');
+    ribbonGrad.addColorStop(0.5, '#D9A93F');
+    ribbonGrad.addColorStop(1, '#A8781F');
+    ctx.fillStyle = ribbonGrad;
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(122,18,16,0.4)';
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#7A1210';
+    ctx.font = "700 12px 'Manrope', sans-serif";
+    ctx.fillText('TEAM SPSB', yrBadgeCX, ribbonY + 4);
+
+    // Year count, centered in the upper part of the red face
+    ctx.fillStyle = '#FBE7B0';
+    ctx.font = "700 30px 'Manrope', sans-serif";
+    ctx.fillText(String(hist.length), yrBadgeCX, yrBadgeCY - 14);
+    ctx.font = "700 12px 'Manrope', sans-serif";
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(hist.length > 1 ? 'YEARS' : 'YEAR', yrBadgeCX, yrBadgeCY + 4);
+
+    // Name / role — overlaid bottom-left directly on the photo, like
+    // the reference (white name, gold role caption, sitting on the
+    // dark fade instead of a separate block below the photo).
+    ctx.textAlign = 'left';
+    let overlayNameFontSize = nameFontSize;
+    ctx.font = `700 ${overlayNameFontSize}px 'Manrope', sans-serif`;
+    const maxOverlayNameWidth = photoAreaW - 76;
+    while(overlayNameFontSize > 26 && ctx.measureText(p.name).width > maxOverlayNameWidth){
+      overlayNameFontSize -= 2;
+      ctx.font = `700 ${overlayNameFontSize}px 'Manrope', sans-serif`;
+    }
+    const overlayNameLines = ctx.measureText(p.name).width > maxOverlayNameWidth
+      ? wrapTextLines(ctx, p.name, maxOverlayNameWidth)
+      : [p.name];
+    const overlayLineH = overlayNameFontSize * 1.18;
+    const roleLabel = (GROUP_LABEL[hist[0] && hist[0].group] || 'Executive').toUpperCase();
+
+    const overlayTextX = photoAreaX + 38;
+    const roleY = photoAreaY + photoAreaH - 40;
+    const nameBlockH = overlayNameLines.length * overlayLineH;
+    const nameStartY = roleY - 34 - nameBlockH + overlayLineH;
+    ctx.fillStyle = '#FFFFFF';
+    overlayNameLines.forEach((line, i) => { ctx.fillText(line, overlayTextX, nameStartY + i*overlayLineH); });
+
+    ctx.font = "700 20px 'Manrope', sans-serif";
+    ctx.fillStyle = '#E4B15A';
+    ctx.fillText(roleLabel, overlayTextX, roleY);
 
     // ---- Info card ----
     if(infoRows.length){
@@ -3172,6 +3253,370 @@ section.group.fade-in{ animation: fadeUp 0.45s ease both; }
     ctx.fillRect(0, H_INNER - 16, W_INNER, 16);
 
     ctx.restore(); // end inner clip/translate
+
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  }
+
+  // ============================================================
+  // ID-CARD STYLE SHARE IMAGE — front + back, like a navy ID
+  // badge. Front: the two org logos up top, the photo, the name,
+  // and a role/designation pill (Core Team / Volunteer & Mentor /
+  // Coordinator, plus the year). Back: institution/phone/email/
+  // location and the full multi-year history. Both cards render
+  // as a single side-by-side "spread" image, mockup-style, on a
+  // light neutral backdrop with drop shadows under each card.
+  // ============================================================
+  async function buildIdCardPng(p){
+    if(document.fonts && document.fonts.ready){ try { await document.fonts.ready; } catch(e){} }
+
+    const hist = sortedHistory(p);
+    const GROUP_COLOR = {
+      coordinators: { main: '#2FBF9F', soft: 'rgba(47,191,159,0.18)' },
+      core_team:    { main: '#E4B15A', soft: 'rgba(228,177,90,0.18)' },
+      volunteers:   { main: '#9C8CF0', soft: 'rgba(156,140,240,0.18)' },
+      executives:   { main: '#2FBF9F', soft: 'rgba(47,191,159,0.18)' }
+    };
+    const GROUP_LABEL = { coordinators: 'Coordinator', core_team: 'Core Team', volunteers: 'Volunteer & Mentor', executives: 'Executive' };
+
+    function maskPhone(phone){
+      const digits = String(phone).replace(/[^0-9]/g, '');
+      if(digits.length <= 3) return phone;
+      return digits.slice(0, -3) + '***';
+    }
+    function districtOnly(address){
+      if(!address) return '';
+      const explicit = address.match(/Dis(?:trict)?:\s*([^,]+)/i);
+      if(explicit) return explicit[1].trim().replace(/\.$/, '');
+      const parts = address.split(',').map(s => s.trim()).filter(Boolean);
+      let last = parts[parts.length - 1] || address.trim();
+      last = last.replace(/-?\s*\d{3,4}$/, '').replace(/\.$/, '').trim();
+      return last;
+    }
+    const instText = [p.institution, p.department].filter(Boolean).join(' — ');
+    const presentDistrict = districtOnly(p.presentAddress);
+    const permanentDistrict = districtOnly(p.permanentAddress);
+    const addressText = presentDistrict
+      ? `${presentDistrict}${permanentDistrict && permanentDistrict !== presentDistrict ? ` (Permanent: ${permanentDistrict})` : ''}`
+      : (permanentDistrict || '');
+    const ORG_LABEL_NAMES = ['Munir Hasan', 'Farseem Mannan Mohammady', 'Mahmud Mim'];
+    const instLabel = ORG_LABEL_NAMES.includes(p.name) ? 'ORGANIZATION' : 'INSTITUTION';
+    const infoRows = [];
+    if(instText) infoRows.push(['🎓', instLabel, instText]);
+    if(p.phone) infoRows.push(['📞', 'PHONE', maskPhone(p.phone)]);
+    if(p.email) infoRows.push(['✉️', 'EMAIL', p.email]);
+    if(addressText) infoRows.push(['📍', 'LOCATION', addressText]);
+
+    function wrapTextLines(mctx, text, maxWidth){
+      const words = String(text).split(/\s+/).filter(Boolean);
+      const lines = [];
+      let current = '';
+      words.forEach(word => {
+        const test = current ? current + ' ' + word : word;
+        if(current && mctx.measureText(test).width > maxWidth){
+          lines.push(current);
+          current = word;
+        } else {
+          current = test;
+        }
+      });
+      if(current) lines.push(current);
+      return lines.length ? lines : [''];
+    }
+
+    const mctx = document.createElement('canvas').getContext('2d');
+    const currentGroup = (hist[0] && GROUP_COLOR[hist[0].group]) || GROUP_COLOR.coordinators;
+
+    // ---- Layout ----
+    const CARD_W = 620, CARD_H = 1000, GAP = 70, MARGIN = 70;
+    const LANYARD_H = 170; // room above the cards for the cord + clip
+    const CARD_TOP = MARGIN + LANYARD_H;
+    const W = MARGIN*2 + CARD_W*2 + GAP, H = MARGIN + LANYARD_H + CARD_H + MARGIN;
+    const EXPORT_SCALE = 3;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W * EXPORT_SCALE;
+    canvas.height = H * EXPORT_SCALE;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(EXPORT_SCALE, EXPORT_SCALE);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // Neutral backdrop the two cards sit on, mockup-style
+    ctx.fillStyle = '#E9EDF1';
+    ctx.fillRect(0, 0, W, H);
+
+    // Lanyard cord + badge clip, drawn above a card — matches a
+    // real ID-badge mockup: a twisted black strap running up off
+    // the top of the canvas, into a silver connector and a dark
+    // plastic alligator-style badge clip that grips the card edge.
+    function drawLanyard(cx){
+      ctx.save();
+      const strapW = 26, topY = 6, clipTopY = CARD_TOP - 96;
+      // Strap (slightly tapered, with a subtle twist rendered as
+      // alternating light/dark bands)
+      const strapGrad = ctx.createLinearGradient(cx - strapW/2, 0, cx + strapW/2, 0);
+      strapGrad.addColorStop(0, '#0A0A0A');
+      strapGrad.addColorStop(0.5, '#2B2B2E');
+      strapGrad.addColorStop(1, '#0A0A0A');
+      ctx.fillStyle = strapGrad;
+      ctx.fillRect(cx - strapW/2, topY, strapW, clipTopY - topY);
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = '#ffffff';
+      for(let i = 0; i < 6; i++){
+        const segY = topY + (clipTopY - topY) * (i / 6) + 6;
+        ctx.fillRect(cx - strapW/2, segY, strapW, 5);
+      }
+      ctx.restore();
+
+      // Silver connector piece
+      ctx.fillStyle = '#C9CDD3';
+      roundedRectPath(ctx, cx - 15, clipTopY, 30, 26, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#9DA2AA'; ctx.lineWidth = 1.5;
+      roundedRectPath(ctx, cx - 15, clipTopY, 30, 26, 6);
+      ctx.stroke();
+
+      // Dark plastic badge clip body
+      const clipBodyY = clipTopY + 22, clipBodyH = 70;
+      const clipGrad = ctx.createLinearGradient(cx - 34, clipBodyY, cx + 34, clipBodyY + clipBodyH);
+      clipGrad.addColorStop(0, '#3A3A3E');
+      clipGrad.addColorStop(0.5, '#1A1A1D');
+      clipGrad.addColorStop(1, '#2E2E32');
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 6;
+      roundedRectPath(ctx, cx - 34, clipBodyY, 68, clipBodyH, 10);
+      ctx.fillStyle = clipGrad;
+      ctx.fill();
+      ctx.restore();
+      // Ridge lines + oval loop hole, for a bit of plastic-clip detail
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 2;
+      for(let i = 0; i < 4; i++){
+        const ly = clipBodyY + 14 + i*11;
+        ctx.beginPath(); ctx.moveTo(cx - 22, ly); ctx.lineTo(cx + 22, ly); ctx.stroke();
+      }
+      ctx.fillStyle = '#0B1B3D';
+      ctx.beginPath(); ctx.ellipse(cx, clipBodyY + clipBodyH - 12, 9, 6, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    function navyCardBackground(){
+      const grad = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
+      grad.addColorStop(0, '#0B1B3D');
+      grad.addColorStop(0.55, '#152F63');
+      grad.addColorStop(1, '#1E3A6E');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, CARD_W, CARD_H);
+      // Soft glow circles, echoing the reference mockup's corner glow
+      ctx.save();
+      ctx.globalAlpha = 0.10;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(-40, CARD_H+30, 220, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(CARD_W+30, -30, 150, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    function startCard(x){
+      ctx.save();
+      // Drop shadow under the whole card
+      ctx.save();
+      ctx.shadowColor = 'rgba(10,20,40,0.35)';
+      ctx.shadowBlur = 40;
+      ctx.shadowOffsetY = 18;
+      roundedRectPath(ctx, x, CARD_TOP, CARD_W, CARD_H, 26);
+      ctx.fillStyle = '#0B1B3D';
+      ctx.fill();
+      ctx.restore();
+      roundedRectPath(ctx, x, CARD_TOP, CARD_W, CARD_H, 26);
+      ctx.clip();
+      ctx.translate(x, CARD_TOP);
+      navyCardBackground();
+    }
+    function endCard(){ ctx.restore(); }
+
+    const bdjsoLogoImg = await loadImageSafe(BDJSO_LOGO);
+    const spsbLogoImg = await loadImageSafe(SPSB_LOGO);
+    let photoImg = await loadImageSafe(p.photo);
+    if(!photoImg && p.photo && /^https?:\/\//i.test(p.photo)){
+      const proxied = 'https://images.weserv.nl/?url=' + encodeURIComponent(p.photo.replace(/^https?:\/\//i, '')) + '&w=600&h=600&fit=cover';
+      photoImg = await loadImageSafe(proxied);
+    }
+    if(!photoImg){
+      const avatarSrc = (p.photo && p.photo.startsWith('data:image/svg')) ? p.photo : localAvatar(p.name, p.avatarSeed || 0);
+      photoImg = await loadImageSafe(avatarSrc);
+    }
+
+    // Lanyard sits above the front card only, matching the reference mockup
+    drawLanyard(MARGIN + CARD_W/2);
+
+    // ---------------- FRONT CARD ----------------
+    startCard(MARGIN);
+    {
+      // Logo lockup, centered at the very top — both org marks
+      // side by side, spanning toward the card's center.
+      const logoH = 34, logoY = 30;
+      const bdjsoW = bdjsoLogoImg ? logoH * (bdjsoLogoImg.width / bdjsoLogoImg.height) : 0;
+      const spsbW = spsbLogoImg ? logoH * (spsbLogoImg.width / spsbLogoImg.height) : 0;
+      const logoGap = 20;
+      const totalLogoW = bdjsoW + (spsbLogoImg ? logoGap + spsbW : 0);
+      let lx = CARD_W/2 - totalLogoW/2;
+      if(bdjsoLogoImg){
+        roundedRectPath(ctx, lx - 8, logoY - 7, bdjsoW + 16, logoH + 14, 9);
+        ctx.fillStyle = 'rgba(255,255,255,0.90)';
+        ctx.fill();
+        ctx.drawImage(bdjsoLogoImg, lx, logoY, bdjsoW, logoH);
+        lx += bdjsoW + logoGap;
+      }
+      if(spsbLogoImg){
+        roundedRectPath(ctx, lx - 8, logoY - 7, spsbW + 16, logoH + 14, 9);
+        ctx.fillStyle = 'rgba(255,255,255,0.90)';
+        ctx.fill();
+        ctx.drawImage(spsbLogoImg, lx, logoY, spsbW, logoH);
+      }
+
+      // Large, near-full-bleed photo — starts just below the logo
+      // row and fills the rest of the card edge to edge, like the
+      // reference badge.
+      const photoAreaX = 0;
+      const photoAreaY = logoY + logoH + 30;
+      const photoAreaW = CARD_W;
+      const photoAreaH = CARD_H - photoAreaY;
+      if(photoImg){
+        ctx.save();
+        roundedRectPath(ctx, photoAreaX, photoAreaY, photoAreaW, photoAreaH, 0);
+        ctx.clip();
+        const iw = photoImg.width, ih = photoImg.height;
+        const scale = Math.max(photoAreaW/iw, photoAreaH/ih);
+        const dw = iw*scale, dh = ih*scale;
+        const dx = photoAreaX + photoAreaW/2 - dw/2;
+        // Anchor the crop toward the TOP of the source photo (like
+        // object-position: top) so the face stays in frame — most
+        // headshots/portraits have the face in the upper portion,
+        // and a taller-than-box image needs its bottom (torso/legs)
+        // cropped away, not its top.
+        const dy = photoAreaY - dh*0.03;
+        ctx.drawImage(photoImg, dx, dy, dw, dh);
+        // Bottom fade so the name/role text stays legible sitting
+        // directly on the photo, matching the reference.
+        const bottomFade = ctx.createLinearGradient(0, photoAreaY + photoAreaH*0.55, 0, photoAreaY + photoAreaH);
+        bottomFade.addColorStop(0, 'rgba(11,27,61,0)');
+        bottomFade.addColorStop(1, 'rgba(11,27,61,0.92)');
+        ctx.fillStyle = bottomFade;
+        ctx.fillRect(photoAreaX, photoAreaY, photoAreaW, photoAreaH);
+        // Soft top fade so the photo doesn't hard-cut against the logo row
+        const topFade = ctx.createLinearGradient(0, photoAreaY, 0, photoAreaY + photoAreaH*0.12);
+        topFade.addColorStop(0, 'rgba(11,27,61,0.7)');
+        topFade.addColorStop(1, 'rgba(11,27,61,0)');
+        ctx.fillStyle = topFade;
+        ctx.fillRect(photoAreaX, photoAreaY, photoAreaW, photoAreaH*0.12);
+        ctx.restore();
+      }
+
+      // Name / role / year — bottom-left, sitting directly on the
+      // photo, reference-style.
+      const textX = 34;
+      let nameFontSize = 30;
+      ctx.font = `700 ${nameFontSize}px 'Manrope', sans-serif`;
+      const maxNameWidth = CARD_W - textX*2;
+      while(nameFontSize > 20 && ctx.measureText(p.name).width > maxNameWidth){
+        nameFontSize -= 2;
+        ctx.font = `700 ${nameFontSize}px 'Manrope', sans-serif`;
+      }
+      const nameLines = ctx.measureText(p.name).width > maxNameWidth ? wrapTextLines(ctx, p.name, maxNameWidth) : [p.name];
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#FFFFFF';
+      const nameLineH = nameFontSize * 1.15;
+      const roleLabel = (GROUP_LABEL[hist[0] && hist[0].group] || 'Executive').toUpperCase();
+      const yearLabel = hist[0] ? String(hist[0].year) : '';
+      const captionText = `BdJSO · ${yearLabel} · ${hist.length} ${hist.length > 1 ? 'yrs' : 'yr'}`;
+
+      const captionY = CARD_H - 34;
+      const roleY = captionY - 26;
+      const nameBlockBottom = roleY - 30;
+      const nameBlockH = nameLines.length * nameLineH;
+      const nameStartY = nameBlockBottom - nameBlockH + nameLineH;
+      nameLines.forEach((line, i) => { ctx.fillText(line, textX, nameStartY + i*nameLineH); });
+
+      ctx.font = "700 17px 'Manrope', sans-serif";
+      ctx.fillStyle = '#E4B15A';
+      ctx.fillText(roleLabel, textX, roleY);
+
+      ctx.font = "600 14px 'Manrope', sans-serif";
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fillText(captionText, textX, captionY);
+    }
+    endCard();
+
+    // ---------------- BACK CARD ----------------
+    startCard(MARGIN + CARD_W + GAP);
+    {
+      const padX = 56;
+      let y = 70;
+      ctx.textAlign = 'center';
+      ctx.font = "700 22px 'Fraunces', serif";
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText('Contact & Full History', CARD_W/2, y);
+      y += 14;
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(CARD_W - padX, y); ctx.stroke();
+      y += 36;
+
+      ctx.textAlign = 'left';
+      const valueMaxWidth = CARD_W - padX*2 - 56;
+      infoRows.forEach(([emoji, label, value]) => {
+        ctx.font = "700 12px 'Manrope', sans-serif";
+        ctx.fillStyle = '#E4B15A';
+        ctx.fillText(label, padX + 44, y);
+        ctx.font = "600 17px 'Manrope', sans-serif";
+        ctx.fillStyle = '#FFFFFF';
+        const lines = wrapTextLines(ctx, value, valueMaxWidth);
+        let vy = y + 22;
+        lines.forEach(line => { ctx.fillText(line, padX + 44, vy); vy += 23; });
+        ctx.font = '18px sans-serif';
+        ctx.fillText(emoji, padX, y + 14);
+        y = vy + 16;
+      });
+
+      y += 6;
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(CARD_W - padX, y); ctx.stroke();
+      y += 36;
+
+      ctx.font = "700 15px 'Manrope', sans-serif";
+      ctx.fillStyle = '#D6E4FF';
+      ctx.fillText(`FULL HISTORY — ${hist.length} ${hist.length > 1 ? 'YEARS' : 'YEAR'}`, padX, y);
+      y += 26;
+
+      hist.forEach(h => {
+        const gc = GROUP_COLOR[h.group] || GROUP_COLOR.coordinators;
+        // Year badge
+        ctx.font = "700 13px 'Manrope', sans-serif";
+        const yearW = ctx.measureText(String(h.year)).width + 24;
+        roundedRectPath(ctx, padX, y - 18, yearW, 28, 14);
+        ctx.fillStyle = gc.soft; ctx.fill();
+        ctx.fillStyle = gc.main;
+        ctx.textAlign = 'center';
+        ctx.fillText(String(h.year), padX + yearW/2, y + 1);
+        ctx.textAlign = 'left';
+        ctx.font = "700 17px 'Manrope', sans-serif";
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(h.role, padX + yearW + 16, y + 2);
+        y += 40;
+      });
+
+      // Footer sign-off
+      const footerY = CARD_H - 100;
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath(); ctx.moveTo(CARD_W/2 - 70, footerY); ctx.lineTo(CARD_W/2 + 70, footerY); ctx.stroke();
+      ctx.font = "600 14px 'Manrope', sans-serif";
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillText('Yours in Science', CARD_W/2, footerY + 30);
+      ctx.font = "700 15px 'Fraunces', serif";
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText('Bangladesh Junior Science Olympiad', CARD_W/2, footerY + 58);
+    }
+    endCard();
 
     return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   }
